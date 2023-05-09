@@ -31,6 +31,7 @@ struct MessageData
  * ValueModifiers
  ************************************************************************/
 
+// <value_modifiers/value_modifier_interface.h>
 class IValueModifier
 {
  public:
@@ -43,6 +44,7 @@ class IValueModifier
   virtual double generateVal() = 0;
 };
 
+// <value_modifiers/square_value_modifier.h>
 class SquareValueModifier : public IValueModifier
 {
  public:
@@ -60,6 +62,7 @@ class SquareValueModifier : public IValueModifier
   MessageData curr_data_;
 };
 
+// <value_modifiers/log_value_modifier.h>
 #include <cmath>
 
 class LogValueModifier : public IValueModifier
@@ -87,7 +90,7 @@ class LogValueModifier : public IValueModifier
  ************************************************************************/
 
 // value_modifier_factory.h
-// #include <value_modifier_doubleerface.h>
+// #include <value_modifier_interface.h>
 // #include <value_modifier_lib/log_modifier.h>
 // #include <value_modifier_lib/square_modifier.h>
 
@@ -120,6 +123,8 @@ class ValueModifierFactory
 /*************************************************************************
  * Solver
  ************************************************************************/
+
+// #include <value_modifier/value_modifier_interface.h>
 
 class Solver
 {
@@ -159,7 +164,7 @@ class Solver
  ************************************************************************/
 
 // #include <value_modifier_factory.h>
-// #include <value_modifier_doubleerface.h>
+// #include <value_modifier_interface.h>
 
 int main()
 {
@@ -193,3 +198,4 @@ int main()
 
   return 0;
 }
+

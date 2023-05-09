@@ -90,7 +90,7 @@ class Solver
 // #include <value_modifier_factory.h>
 // #include <value_modifier_doubleerface.h>
 
-double main()
+int main()
 {
   const double clipping_limit = 42;
 
