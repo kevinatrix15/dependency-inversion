@@ -88,7 +88,7 @@ class Solver
  ************************************************************************/
 
 // #include <value_modifier_factory.h>
-// #include <value_modifier_doubleerface.h>
+// #include <value_modifier_interface.h>
 
 int main()
 {

@@ -170,24 +170,52 @@ class Solver
 };
 
 /*************************************************************************
- * Application
+ * Applications
  ************************************************************************/
 
 // #include <value_modifier_factory_interface.h>
 // #include <value_modifier_interface.h>
 
-std::unique_ptr<IValueModifier> createValueModifier(IValueModifierFactory& valueModifierFactory,
+std::unique_ptr<IValueModifier> createValueModifier(IValueModifierFactory& value_modifier_factory,
                                                     IValueModifierFactory::ModifierType mod_type)
 {
-  return valueModifierFactory.makeValueModifier(mod_type);
+  return value_modifier_factory.makeValueModifier(mod_type);
 }
 
-void Application(IValueModifierFactory& valueModifierFactory,
-                 IValueModifierFactory::ModifierType mod_type,
-                 const double clipping_limit)
+/**
+ * @brief An application that creates its own value modifiers (given e.g., a class of modifier types)
+ */
+void ComplexApplication(IValueModifierFactory& value_modifier_factory,
+                        IValueModifierFactory::ModifierType mod_type,
+                        const double clipping_limit)
 {
-  std::unique_ptr<IValueModifier> val_modifier_ptr = createValueModifier(valueModifierFactory, mod_type);
+  std::unique_ptr<IValueModifier> val_modifier_ptr = createValueModifier(value_modifier_factory, mod_type);
   Solver solver(clipping_limit, std::move(val_modifier_ptr));
+
+  const size_t n = 10;
+  std::vector<double> vals(n);
+  std::iota(vals.begin(), vals.end(), 0);
+
+  std::cout << "Solver w/ clipping_limit: " << std::to_string(clipping_limit) << std::endl;
+  for (const auto v : vals)
+  {
+    const MessageData data(v);
+    solver.updateDataCb(data);
+
+    const double sln = solver.solve();
+    std::cout << "input: = " << data.get_val() << ", output: " << std::to_string(sln) << std::endl;
+  }
+}
+
+// #include <solver/solver.h>
+// #include <value_modifier_interface.h>
+
+/**
+ * @brief An application that creates its own value modifiers (given e.g., a class of modifier types)
+ */
+void SimpleApplication(std::unique_ptr<IValueModifier> value_modifier_ptr, const double clipping_limit)
+{
+  Solver solver(clipping_limit, std::move(value_modifier_ptr));
 
   const size_t n = 10;
   std::vector<double> vals(n);
@@ -217,10 +245,21 @@ int main()
   ValueModifierFactory factory;
 
   std::cout << "*****Running Application() for Square modifier*****" << std::endl;
-  Application(factory, IValueModifierFactory::ModifierType::SQUARE, clipping_limit);
+  std::unique_ptr<IValueModifier> value_modifier =
+      factory.makeValueModifier(IValueModifierFactory::ModifierType::SQUARE);
+  SimpleApplication(std::move(value_modifier), clipping_limit);
 
   std::cout << "*****Running Application() for Log modifier*****" << std::endl;
-  Application(factory, IValueModifierFactory::ModifierType::LOG, clipping_limit);
+  value_modifier = factory.makeValueModifier(IValueModifierFactory::ModifierType::LOG);
+  SimpleApplication(std::move(value_modifier), clipping_limit);
+
+#if 0
+  std::cout << "*****Running Application() for Square modifier*****" << std::endl;
+  ComplexApplication(factory, IValueModifierFactory::ModifierType::SQUARE, clipping_limit);
+
+  std::cout << "*****Running Application() for Log modifier*****" << std::endl;
+  ComplexApplication(factory, IValueModifierFactory::ModifierType::LOG, clipping_limit);
+#endif
 
   return 0;
 }
