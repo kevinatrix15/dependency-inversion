@@ -86,15 +86,13 @@ class LogValueModifier : public IValueModifier
 // e.g., SquareValueModifier, LogValueModifier, LinearValueModifier, etc.
 
 /*************************************************************************
- * Factory Pattern
+ * Abstract Factory Pattern
  ************************************************************************/
 
-// value_modifier_factory.h
+// value_modifier_factory_interface.h
 // #include <value_modifier_interface.h>
-// #include <value_modifier_lib/log_modifier.h>
-// #include <value_modifier_lib/square_modifier.h>
 
-class ValueModifierFactory
+class IValueModifierFactory
 {
  public:
   enum class ModifierType
@@ -103,19 +101,31 @@ class ValueModifierFactory
     LOG
   };
 
-  static std::unique_ptr<IValueModifier> makeValueModifier(const ModifierType& mod_type)
+  virtual ~IValueModifierFactory() = default;
+
+  virtual std::unique_ptr<IValueModifier> makeValueModifier(const ModifierType& mod_type) = 0;
+};
+
+// value_modifier_factory.h
+
+// #include <value_modifier_lib/log_modifier.h>
+// #include <value_modifier_lib/square_modifier.h>
+
+class ValueModifierFactory : public IValueModifierFactory
+{
+ public:
+  std::unique_ptr<IValueModifier> makeValueModifier(const ModifierType& mod_type) override
   {
-    if (mod_type == ModifierType::SQUARE)
+    switch (mod_type)
     {
-      return std::make_unique<SquareValueModifier>();
-    }
-    else if (mod_type == ModifierType::LOG)
-    {
-      return std::make_unique<LogValueModifier>();
-    }
-    else
-    {
-      throw std::runtime_error("Unknown value modifier encountered");
+      case ModifierType::SQUARE:
+        return std::make_unique<SquareValueModifier>();
+        break;
+      case ModifierType::LOG:
+        return std::make_unique<LogValueModifier>();
+        break;
+      default:
+        throw std::runtime_error("Unknown value modifier encountered");
     }
   }
 };
@@ -160,41 +170,57 @@ class Solver
 };
 
 /*************************************************************************
- * Main
+ * Application
  ************************************************************************/
 
-// #include <value_modifier_factory.h>
+// #include <value_modifier_factory_interface.h>
 // #include <value_modifier_interface.h>
 
-int main()
+std::unique_ptr<IValueModifier> createValueModifier(IValueModifierFactory& valueModifierFactory,
+                                                    IValueModifierFactory::ModifierType mod_type)
 {
-  const double clipping_limit = 42;
+  return valueModifierFactory.makeValueModifier(mod_type);
+}
 
-  std::unique_ptr<IValueModifier> square_modifier_ptr =
-      ValueModifierFactory::makeValueModifier(ValueModifierFactory::ModifierType::SQUARE);
-  Solver sq_solver(clipping_limit, std::move(square_modifier_ptr));
-
-  std::unique_ptr<IValueModifier> log_modifier_ptr =
-      ValueModifierFactory::makeValueModifier(ValueModifierFactory::ModifierType::LOG);
-  Solver log_solver(clipping_limit, std::move(log_modifier_ptr));
+void Application(IValueModifierFactory& valueModifierFactory,
+                 IValueModifierFactory::ModifierType mod_type,
+                 const double clipping_limit)
+{
+  std::unique_ptr<IValueModifier> val_modifier_ptr = createValueModifier(valueModifierFactory, mod_type);
+  Solver solver(clipping_limit, std::move(val_modifier_ptr));
 
   const size_t n = 10;
   std::vector<double> vals(n);
   std::iota(vals.begin(), vals.end(), 0);
 
+  std::cout << "Solver w/ clipping_limit: " << std::to_string(clipping_limit) << std::endl;
   for (const auto v : vals)
   {
     const MessageData data(v);
-    sq_solver.updateDataCb(data);
-    log_solver.updateDataCb(data);
+    solver.updateDataCb(data);
 
-    const double sq_sln = sq_solver.solve();
-    const double log_sln = log_solver.solve();
-    std::cout << "Solver w/ clipping_limit: " << std::to_string(clipping_limit)
-              << ", given data.value() = " << data.get_val() << std::endl;
-    std::cout << ", sq_solver produces: " << std::to_string(sq_sln)
-              << ", log_solver produces: " << std::to_string(log_sln) << std::endl;
+    const double sln = solver.solve();
+    std::cout << "input: = " << data.get_val() << ", output: " << std::to_string(sln) << std::endl;
   }
+}
+
+/*************************************************************************
+ * Main
+ ************************************************************************/
+
+// #include <value_modifier_factory.h>
+
+int main()
+{
+  const double clipping_limit = 42;
+
+  ValueModifierFactory factory;
+
+  std::cout << "*****Running Application() for Square modifier*****" << std::endl;
+  Application(factory, IValueModifierFactory::ModifierType::SQUARE, clipping_limit);
+
+  std::cout << "*****Running Application() for Log modifier*****" << std::endl;
+  Application(factory, IValueModifierFactory::ModifierType::LOG, clipping_limit);
 
   return 0;
 }
